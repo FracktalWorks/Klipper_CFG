@@ -1,5 +1,10 @@
 # OctoPrint Plugin to automatically update printer.cfg from GitHub
 
+__plugin_name__ = "Klipper Config Updater"
+__plugin_version__ = "1.0.0"
+__plugin_description__ = "Updates Klipper printer.cfg from Github repo"
+__plugin_pythoncompat__ = ">=2.7,<4"
+
 import octoprint.plugin
 import requests
 
@@ -47,4 +52,5 @@ class PrinterConfigUpdaterPlugin(octoprint.plugin.StartupPlugin):
 __plugin_name__ = "Printer Config Updater"
 __plugin_version__ = "1.0.0"
 __plugin_description__ = "Automatically updates printer.cfg from a specified GitHub repository"
+__plugin_pythoncompat__ = ">=2.7,<4"
 __plugin_implementation__ = PrinterConfigUpdaterPlugin()
