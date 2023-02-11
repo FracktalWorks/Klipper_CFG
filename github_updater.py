@@ -2,7 +2,7 @@
 __plugin_name__ = "Klipper Config Updater"
 __plugin_version__ = "1.0.0"
 __plugin_description__ = "Updates Klipper printer.cfg from Github repo"
-__plugin_pythoncompat__ = ">=3.7,<4"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 # Plugin imports
 import octoprint.plugin
@@ -49,7 +49,7 @@ class KlipperConfigUpdaterPlugin(octoprint.plugin.StartupPlugin,
 __plugin_name__ = "Klipper Config Updater"
 __plugin_version__ = "1.0.0"
 __plugin_description__ = "Updates Klipper printer.cfg from Github repo"
-__plugin_pythoncompat__ = ">=3.7,<4"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
     global __plugin_implementation__
