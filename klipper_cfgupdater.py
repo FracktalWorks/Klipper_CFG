@@ -1,75 +1,50 @@
-# Plugin information
-__plugin_name__ = "Klipper Config Updater"
-__plugin_version__ = "1.0.0"
-__plugin_description__ = "Automatically update Klipper configuration files from GitHub."
-__plugin_pythoncompat__ = "2.7,<4"  # This plugin is compatible with Python 2.7
+# OctoPrint Plugin to automatically update printer.cfg from GitHub
 
-# Import required modules
 import octoprint.plugin
-import octoprint.util
 import requests
-import threading
-import time
-import shutil
-import os
 
-class KlipperConfigUpdaterPlugin(octoprint.plugin.SettingsPlugin,
-                                  octoprint.plugin.StartupPlugin):
+class PrinterConfigUpdaterPlugin(octoprint.plugin.StartupPlugin):
+	def on_after_startup(self):
+		owner = "FracktalWorks"
+		repo = "Klipper_CFG"
+		filename = "Twin Dragon IDEX.cfg"
+		local_path = "/home/pi/printer.cfg"
+		update_interval = 1 # in days
+		
+		# Check for an update
+		try:
+			response = requests.get(f"https://github.com/FracktalWorks/Klipper_CFG/raw/main/Twin%20Dragon_IDEX.cfg")
+			response.raise_for_status()
+			commit = response.json()
+			latest_sha = commit['sha']
+		except requests.exceptions.RequestException:
+			self._logger.exception("Failed to retrieve latest commit from GitHub")
+			return
 
-    def __init__(self):
-        self._update_thread = None
-        self._update_interval = None
+		with open(local_path, "r") as f:
+			current_cfg = f.read()
+			f.close()
 
-    def get_settings_defaults(self):
-        return dict(
-            repo_url = "https://github.com/FracktalWorks/Klipper_CFG/raw/main/Twin%20Dragon_IDEX.cfg",
-            update_interval = 15
-        )
+		try:
+			response = requests.get(f"https://raw.githubusercontent.com/FracktalWorks/Klipper_CFG/main/Twin%20Dragon_IDEX.cfg")
+			response.raise_for_status()
+			new_cfg = response.text
+		except requests.exceptions.RequestException:
+			self._logger.exception("Failed to retrieve new printer.cfg from GitHub")
+			return
 
-    def on_settings_save(self, data):
-        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-        self._update_interval = int(self._settings.get(["update_interval"]))
+		if new_cfg != current_cfg:
+			with open(local_path, "w") as f:
+				f.write(new_cfg)
+				f.close()
+			self._logger.info("Updated printer.cfg from GitHub")
+		else:
+			self._logger.info("No updates found in GitHub")
 
-    def on_after_startup(self):
-        self._update_interval = int(self._settings.get(["update_interval"]))
-        self.start_update_thread()
-
-    def start_update_thread(self):
-        if self._update_thread is None or not self._update_thread.is_alive():
-            self._update_thread = threading.Thread(target=self.update_config_file)
-            self._update_thread.daemon = True
-            self._update_thread.start()
-
-    def update_config_file(self):
-        while True:
-            try:
-                url = self._settings.get(["repo_url"])
-                response = requests.get(url, stream=True)
-                if response.status_code == 200:
-                    with open("/home/pi/printer.cfg", 'wb') as f:
-                        response.raw.decode_content = True
-                        shutil.copyfileobj(response.raw, f)
-                        octoprint.util.comm.printer.synchronize()
-                        self._plugin_manager.send_plugin_message(self._identifier, dict(type="success"))
-            except Exception as e:
-                self._logger.exception("Exception during config update: {}".format(e))
-
-            time.sleep(self._update_interval * 86400)
-
-    def get_update_information(self):
-        return dict(
-            klipper_config_updater=dict(
-                displayName="Klipper Config Updater",
-                displayVersion=self._plugin_version,
-                type="github_release",
-                user="octoprint",
-                repo="octoprint-klipper-config-updater",
-                current=self._plugin_version,
-                pip="https://github.com/octoprint/octoprint-klipper-config-updater/archive/{target_version}.zip"
-            )
-        )
-
-__plugin_name__ = "Klipper Config Updater"
+		self.t = threading.Timer(update_interval * 3600, self.on_after_startup)
+		self.t.start()
+		
+__plugin_name__ = "Printer Config Updater"
 __plugin_version__ = "1.0.0"
-__plugin_description__ = "Automatically update Klipper configuration files from GitHub."
-__plugin_implementation__ = KlipperConfigUpdaterPlugin()
+__plugin_description__ = "Automatically updates printer.cfg from a specified GitHub repository"
+__plugin_implementation__ = PrinterConfigUpdaterPlugin()
